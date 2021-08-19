@@ -1,5 +1,6 @@
 from typing import List
 from pathlib import Path
+from functools import reduce
 
 import streamlit as st
 import numpy as np
@@ -8,17 +9,25 @@ import matplotlib.pyplot as plt
 
 from .event_utils import *
 
+CCY_PAIRS = {
+    "EUR": ["EURUSD", "EURJPY"],
+    "GBP": ["GBPUSD", "GBPJPY"],
+    "USD": ["EURUSD", "GBPUSD", "NZDUSD", "USDCAD", "USDJPY", "USDCHF"],
+    "NZD": ["NZDUSD", "NZDJPY"],
+    "AUD": ["AUDJPY"],
+    "CAD": ["USDCAD", "CADJPY"],
+    "CHF": ["USDCHF"],
+    "JPY": ["USDJPY"]
+}
+
 def render() -> None:
     st.title("Event Volatility")
-    
-    ccy_pairs = ['EURUSD', 'EURAUD', 'EURCAD', 'EURCHF', 'EURGBP', 'EURJPY', 'EURNZD', 
-                'AUDCAD', 'AUDCHF', 'AUDJPY', 'AUDNZD', 'AUDUSD', 'CADCHF', 'CADJPY', 
-                'CHFJPY', 'GBPAUD', 'GBPCAD', 'GBPCHF', 'GBPJPY', 'GBPNZD', 'GBPUSD', 
-                'NZDCAD', 'NZDCHF', 'NZDJPY', 'NZDUSD', 'USDCAD', 'USDCHF', 'USDJPY']
 
     ff_calendar_path = Path("data/forex_calendar_01-2011_04-2021_GMT0.csv")
     calendar_df = pd.read_csv(ff_calendar_path)
     calendar_df = calendar_df[~calendar_df['Event'].astype(str).str.contains("Holiday")]
+    calendar_df = calendar_df[~calendar_df['Time'].astype(str).str.contains("[a-z]", regex=True)]
+
     base_ccys: np.ndarray = calendar_df['Currency'].unique()
     events: np.ndarray = np.sort(calendar_df['Event'].unique().astype(str))
 
@@ -30,44 +39,34 @@ def render() -> None:
     
     base_ccy = st.sidebar.selectbox("Base Currency:", base_ccys, index=0)
 
-    pairs: List[str] = [i for i in ccy_pairs if base_ccy in i]
+    pairs: List[str] = CCY_PAIRS[base_ccy]
     pair: str = st.sidebar.selectbox("Pair:", pairs, index=0)
 
-
+    price_path = Path(f"data/PFX Fixing 25.7.21/{pair}.xlsx")
+    price_df_dict = pd.read_excel(price_path, 
+                                  usecols="B:F", 
+                                  skiprows=[0], 
+                                  sheet_name=list(range(24)), 
+                                  engine="openpyxl")
+    price_df_dict = clean_price_df(price_df_dict)
+    price_dfs = [price_df_dict[i] for i in list(range(24))]
     df_calendar_filtered = get_df_calendar_filtered(calendar_df, event, base_ccy)
+    df_calendar_filtered['Hour'] = pd.to_datetime(df_calendar_filtered['Time']).dt.hour
+    df_merged = reduce(lambda  left,right: pd.merge(left,right,on=['Date'],
+                                            how='left'), [df_calendar_filtered] + price_dfs)
 
-    df_calendar_filtered['Actual'] = df_calendar_filtered['Actual'].fillna('0')
-    df_calendar_filtered['Forecast'] = df_calendar_filtered['Forecast'].fillna('0')
-    df_calendar_filtered['Previous'] = df_calendar_filtered['Previous'].fillna('0')
+    df_merged['6 Hour Volatility'] = df_merged.apply(calc_6_hours_volatility, axis=1, pair="EURUSD")
 
-    df_price_RT = get_df_price_RT(pair)
-    result_df = combine_calendar_with_price_RT(df_calendar_filtered, 
-                                df_price_RT,
-                                event, 
-                                pair, base_ccy)
-
-    result_df = calc_volatility(result_df, base_ccy, event, pair)
-
-    st.header(f"Volatility Histogram Charts")
+    st.header(f"Volatility Histogram Chart")
     with st.expander("See charts"):
-        fig_par, ax_par = plt.subplots()
-        ax_par.set_title("Volatility At Event Release")
-        ax_par.hist(result_df['Volatility_pips_intraday'].dropna(), bins=10)
-        st.pyplot(fig_par)
-
-        fig_bf, ax_bf = plt.subplots()
-        ax_bf.set_title("Volatility Before Event Release")
-        ax_bf.hist(result_df['Volatility_pips_bf'].dropna(), bins=10)
-        st.pyplot(fig_bf)
-
-        fig_af, ax_af = plt.subplots()
-        ax_af.set_title("Volatility After Event Release")
-        ax_af.hist(result_df['Volatility_pips_af'].dropna(), bins=10)
-        st.pyplot(fig_af)
+        fig, ax = plt.subplots()
+        ax.set_title("6-Hour Volatility")
+        ax.hist(df_merged['6 Hour Volatility'].dropna(), bins=10)
+        st.pyplot(fig)
 
     st.header(f"Volatility Table")
     with st.expander("See table"):
-        st.write(result_df[['Volatility_pips_bf', 'Volatility_pips_af', 'Volatility_pips_intraday']]
+        st.write(df_merged[['Datetime', '6 Hour Volatility']]
                     .dropna()
                     .assign(hack='')
                     .set_index('hack'))
