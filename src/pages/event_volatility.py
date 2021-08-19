@@ -52,22 +52,23 @@ def render() -> None:
     with st.expander("See charts"):
         fig_par, ax_par = plt.subplots()
         ax_par.set_title("Volatility At Event Release")
-        ax_par.hist(result_df['Volatility_pips_intraday'], bins=10)
+        ax_par.hist(result_df['Volatility_pips_intraday'].dropna(), bins=10)
         st.pyplot(fig_par)
 
         fig_bf, ax_bf = plt.subplots()
         ax_bf.set_title("Volatility Before Event Release")
-        ax_bf.hist(result_df['Volatility_pips_bf'], bins=10)
+        ax_bf.hist(result_df['Volatility_pips_bf'].dropna(), bins=10)
         st.pyplot(fig_bf)
 
         fig_af, ax_af = plt.subplots()
         ax_af.set_title("Volatility Before Event Release")
-        ax_af.hist(result_df['Volatility_pips_af'], bins=10)
+        ax_af.hist(result_df['Volatility_pips_af'].dropna(), bins=10)
         st.pyplot(fig_af)
 
     st.header(f"Volatility Table")
     with st.expander("See table"):
         st.write(result_df[['Volatility_pips_bf', 'Volatility_pips_af', 'Volatility_pips_intraday']]
+                    .dropna()
                     .assign(hack='')
                     .set_index('hack'))
 
