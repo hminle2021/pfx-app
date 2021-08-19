@@ -61,7 +61,7 @@ def render() -> None:
         st.pyplot(fig_bf)
 
         fig_af, ax_af = plt.subplots()
-        ax_af.set_title("Volatility Before Event Release")
+        ax_af.set_title("Volatility After Event Release")
         ax_af.hist(result_df['Volatility_pips_af'].dropna(), bins=10)
         st.pyplot(fig_af)
 
