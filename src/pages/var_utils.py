@@ -39,7 +39,7 @@ def get_W_SD_info(given_pairs: str,
                   w_sd_df: pd.DataFrame) -> Tuple[float, float, float, float, float]:
     sd_A = w_sd_df.loc[w_sd_df['Currency Portfolio'] == given_pairs]['SD_A'].values[0]
     sd_B = w_sd_df.loc[w_sd_df['Currency Portfolio'] == given_pairs]['SD_B'].values[0]
-    correl = w_sd_df.loc[w_sd_df['Currency Portfolio'] == given_pairs]['Correl'].values[0]
+    correl = w_sd_df.loc[w_sd_df['Currency Portfolio'] == given_pairs]['Correlation'].values[0]
     weight_A = w_sd_df.loc[w_sd_df['Currency Portfolio'] == given_pairs]['Weight_A'].values[0]
     weight_B = w_sd_df.loc[w_sd_df['Currency Portfolio'] == given_pairs]['Weight_B'].values[0]
     sd_portfolio = w_sd_df.loc[w_sd_df['Currency Portfolio'] == given_pairs]['SD_Portfolio'].values[0]
