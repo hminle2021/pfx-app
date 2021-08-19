@@ -3,7 +3,6 @@ from pathlib import Path
 import os 
 import pandas as pd
 import numpy as np
-import unidecode
 from typing import Dict, Tuple
 
 SPECIAL_EVENTS = ['OPEC-JMMC Meetings', 'OPEC Meetings', 'G20 Meetings', 
