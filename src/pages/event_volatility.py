@@ -14,9 +14,9 @@ CCY_PAIRS = {
     "GBP": ["GBPUSD", "GBPJPY"],
     "USD": ["EURUSD", "GBPUSD", "NZDUSD", "USDCAD", "USDJPY", "USDCHF"],
     "NZD": ["NZDUSD", "NZDJPY"],
-    "AUD": ["AUDJPY"],
+    "AUD": ["AUDUSD", "AUDJPY"],
     "CAD": ["USDCAD", "CADJPY"],
-    "CHF": ["USDCHF"],
+    "CHF": ["USDCHF", "CHFJPY"],
     "JPY": ["USDJPY"]
 }
 
@@ -55,7 +55,7 @@ def render() -> None:
     df_merged = reduce(lambda  left,right: pd.merge(left,right,on=['Date'],
                                             how='left'), [df_calendar_filtered] + price_dfs)
 
-    df_merged['6 Hour Volatility'] = df_merged.apply(calc_6_hours_volatility, axis=1, pair="EURUSD")
+    df_merged['6 Hour Volatility'] = df_merged.apply(calc_6_hours_volatility, axis=1, pair=pair)
 
     st.header(f"Volatility Histogram Chart")
     with st.expander("See charts"):
